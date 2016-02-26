@@ -15,6 +15,11 @@ def normalize(vec):
         vec = vec / n
     return vec
 
+def scale(scale_vec):
+    S = np.eye(4)
+    S[:3,:3] = np.diag(np.array(scale_vec))
+    return np.matrix(S)
+    
 def translate(translate_vec):
     T = np.eye(4);
     T[:3,3] = translate_vec
@@ -67,7 +72,37 @@ def rotate(angle_deg, axis):
     return rotY(costh, sinth) * rotX(cosphi, -sinphi) * rotateZ(angle_deg) * rotX(cosphi, sinphi) * rotY(costh, -sinth);
     
 def lookAtMatrix(eye, center, up):
-    pass
+    eye = np.array(eye)
+    lookat = normalize(np.array(center) - eye)
+    up = normalize(np.array(up))
+    
+    cam_right = normalize(np.cross(lookat, up))
+    cam_up = normalize(np.cross(cam_right, lookat))
+    M = np.eye(4)
+    M[0,:3] = cam_right
+    M[1,:3] = cam_up
+    M[2,:3] = -lookat
+    M[:3,3] = np.dot(M[:3,:3], -eye)
+    return np.matrix(M)
+
+def gluLookAtMatrix(eye, center, up):
+    '''
+    get the lookat matrix using opengl. Note that opengl context needs to be
+    initialized at the point of making this call.
+    '''
+    from OpenGL.GL import GL_MODELVIEW, GL_MODELVIEW_MATRIX, glMatrixMode, \
+                            glLoadIdentity, glGetDoublev, glPushMatrix, \
+                            glPopMatrix
+    from OpenGL.GLU import gluLookAt
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    gluLookAt(eye[0], eye[1], eye[2], 
+              center[0], center[1], center[2], 
+              up[0], up[1], up[2]) 
+    M = np.transpose(glGetDoublev(GL_MODELVIEW_MATRIX))
+    glPopMatrix()
+    return np.matrix(M)
     
 def perspectiveMatrix(fovy, aspect, zNear, zFar):
     f = 1.0/np.tan(np.deg2rad(fovy)/2)
@@ -81,14 +116,3 @@ def perspectiveMatrix(fovy, aspect, zNear, zFar):
     
     return np.matrix(P)
 
-def frustumMatrix(left, right, bottom, top, near, far):
-    pass
-
-def orthoMatrix(left, right, bottom, top, near, far):
-    pass
-
-def ModelViewMatrix(self):
-    pass
-
-def ProjectionMatrix(self):
-    return np.eye(4);
